@@ -4,19 +4,19 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>LAP LEDGER — squeekchain settlement registry</title>
-<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#0a0d0e; --ink:#d7ecef; --dim:#6d8a90; --cyan:#00e5ff; --amber:#ffb454;
-  --line:#12343a; --hot:#ff4d4d; --chip:#0b1618;
+  --paper:#0b0906; --ink:#e8dfcf; --dim:#9b9484; --cyan:#3fd0e0; --amber:#e8a33d;
+  --line:#2a2118; --hot:#b5482a; --chip:#120e0a;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
   background:
-    repeating-linear-gradient(90deg,rgba(0,120,140,.10) 0 1px,transparent 1px 24px),
-    repeating-linear-gradient(0deg,rgba(0,120,140,.10) 0 1px,transparent 1px 24px),
-    radial-gradient(110% 80% at 50% -10%,#0c1e24,#080b0c 60%);
+    repeating-linear-gradient(90deg,rgba(232,163,61,.07) 0 1px,transparent 1px 24px),
+    repeating-linear-gradient(0deg,rgba(232,163,61,.07) 0 1px,transparent 1px 24px),
+    radial-gradient(120% 80% at 22% -10%,#1a1208,#0b0906 60%);
   color:var(--ink); font-family:"IBM Plex Mono",monospace; font-size:14px;
   min-height:100vh;
 }
@@ -24,7 +24,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;
   background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.20) 3px 4px),
   radial-gradient(130% 120% at 50% 50%,transparent 62%,rgba(0,0,0,.5) 100%);}
 header{padding:18px 22px;border-bottom:2px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px}
-.brand{font-family:"VT323";font-size:40px;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+.brand{font-family:"Silkscreen";font-weight:700;font-size:34px;color:var(--ink);text-shadow:0 0 14px rgba(63,208,224,.35)}
 .brand b{color:var(--amber)}
 .sub{color:var(--dim);font-size:12px;letter-spacing:1px}
 .wrap{max-width:1120px;margin:0 auto;padding:18px 16px 70px}
@@ -32,13 +32,13 @@ header{padding:18px 22px;border-bottom:2px solid var(--line);display:flex;justif
 @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
 .stat{border:1px solid var(--line);background:var(--chip);padding:10px 12px}
 .stat .k{color:var(--dim);font-size:11px;letter-spacing:1px}
-.stat .v{font-family:"VT323";font-size:34px;color:var(--ink);line-height:1}
+.stat .v{font-family:"Silkscreen";font-size:30px;color:var(--ink);line-height:1}
 .stat.amber .v{color:var(--amber)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{text-align:left;color:var(--dim);font-weight:400;font-size:11px;letter-spacing:1px;padding:8px 8px;border-bottom:1px solid var(--line)}
 tbody td{padding:9px 8px;border-bottom:1px dotted #0f2a2f;vertical-align:top}
 tr:hover td{background:rgba(0,229,255,.05)}
-.lap{font-family:"VT323";font-size:26px;color:var(--cyan)}
+.lap{font-family:"Silkscreen";font-size:18px;color:var(--cyan)}
 .mono{word-break:break-all}
 a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
 .pill{border:1px solid var(--line);color:var(--amber);padding:1px 7px;font-size:11px}

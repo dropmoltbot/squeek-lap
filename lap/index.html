@@ -3,242 +3,267 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>THE LAP — squeekchain liveness cockpit</title>
-<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<title>THE LAP — squeekchain liveness</title>
+<meta name="description" content="Is the hamster working, and is the chain paying for it? A live liveness cockpit for squeekchain."/>
+<meta name="theme-color" content="#0b0906"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0906'/%3E%3Crect x='3' y='3' width='10' height='10' fill='none' stroke='%23e8a33d' stroke-width='2'/%3E%3Crect x='7' y='7' width='2' height='2' fill='%23e8dfcf'/%3E%3C/svg%3E"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#080b0c; --ink:#cdeef2; --dim:#5d7f86; --cyan:#00e5ff; --amber:#ffb454;
-  --hot:#ff4d4d; --grid:rgba(0,120,140,.16); --panel:#0c1416; --line:#12343a;
+  --void:#0b0906; --void2:#120e0a; --bone:#e8dfcf; --bone-dim:#9b9484;
+  --rust:#b5482a; --amber:#e8a33d; --cyan:#3fd0e0; --line:#2a2118;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html{background:var(--void)}
 body{
+  margin:0;color:var(--bone);font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.45;
   background:
-    radial-gradient(120% 90% at 50% -10%, #0b1c22 0, var(--bg) 55%),
-    repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.28) 3px 4px),
-    repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 26px),
-    repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 26px);
-  color:var(--ink); font-family:"VT323",monospace; font-size:20px;
-  letter-spacing:.5px; overflow-x:hidden;
+    radial-gradient(120% 80% at 22% -10%, #1a1208 0, transparent 55%),
+    radial-gradient(90% 70% at 100% 0, #0d1a1d 0, transparent 50%),
+    var(--void);
+  min-height:100vh;overflow-x:hidden;
 }
-body::after{content:"";position:fixed;inset:0;pointer-events:none;
-  background:radial-gradient(130% 120% at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%);}
-header{display:flex;justify-content:space-between;align-items:baseline;
-  padding:16px 22px;border-bottom:2px solid var(--line);flex-wrap:wrap;gap:8px}
-.brand{font-size:34px;color:var(--cyan);text-shadow:0 0 8px var(--cyan),0 2px 0 #042}
-.brand b{color:var(--amber)}
-.sub{color:var(--dim);font-size:16px}
-.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px}
-.grid{display:grid;grid-template-columns:340px 1fr;gap:18px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}}
-.panel{background:linear-gradient(180deg,var(--panel),#070e10);border:1px solid var(--line);
-  box-shadow:inset 0 0 0 1px #04181c, 0 0 0 1px #03080a;position:relative}
-.panel h2{margin:0;padding:8px 12px;font-size:19px;color:var(--dim);letter-spacing:2px;
-  border-bottom:1px dashed var(--line);font-weight:400}
-.pt{padding:12px 14px}
-#wheel{display:block;width:100%;image-rendering:pixelated;background:#05090a}
-.metric{display:flex;justify-content:space-between;align-items:baseline;padding:9px 14px;
-  border-bottom:1px dotted #0f2a2f}
-.metric .k{color:var(--dim);font-size:16px;letter-spacing:1px}
-.metric .v{font-size:30px;color:var(--ink)}
-.big{font-size:64px;line-height:.9}
-.lag .v{color:var(--amber)}
-.crit .v{color:var(--hot)}
-.ok .v{color:var(--cyan)}
-.led{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:8px}
-.led.on{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
-.led.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
-.led.off{background:var(--hot);box-shadow:0 0 10px var(--hot)}
-.led.idle{background:#333;box-shadow:none}
-.bar{height:14px;background:#06181b;border:1px solid var(--line);position:relative;overflow:hidden}
-.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
-.note{color:var(--dim);font-size:15px;line-height:1.35;padding:10px 14px}
-.tag{display:inline-block;border:1px solid var(--line);padding:2px 8px;color:var(--amber);font-size:14px}
-a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
-.foot{padding:10px 22px;color:var(--dim);font-size:14px;border-top:1px solid var(--line)}
-.blink{animation:bl 1.1s steps(1) infinite}@keyframes bl{50%{opacity:.25}}
+body::before{content:"";position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.5;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .87 0 0 0 0 .8 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");}
+body::after{content:"";position:fixed;inset:0;z-index:8;pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.28) 2px 3px),
+    radial-gradient(125% 115% at 50% 45%,transparent 55%,rgba(0,0,0,.72) 100%);}
+
+.mast{display:flex;align-items:baseline;gap:14px;padding:20px 26px 14px;border-bottom:1px solid var(--line)}
+.mark{width:22px;height:22px;border:2px solid var(--amber);display:grid;place-items:center;flex:none;transform:translateY(3px)}
+.mark i{width:6px;height:6px;background:var(--bone);display:block}
+h1{font-family:"Silkscreen";font-weight:700;font-size:clamp(26px,4.6vw,44px);letter-spacing:.02em;margin:0;color:var(--bone)}
+h1 em{font-style:normal;color:var(--amber)}
+.kicker{margin-left:auto;color:var(--bone-dim);text-align:right;font-size:11px}
+.kicker b{display:block;color:var(--bone);font-weight:500;letter-spacing:.14em}
+#state{letter-spacing:.18em}
+
+.stage{display:grid;grid-template-columns:minmax(320px,1fr) 1.05fr;border-bottom:1px solid var(--line)}
+@media(max-width:880px){.stage{grid-template-columns:1fr}}
+
+.hero{position:relative;padding:26px;border-right:1px solid var(--line);
+  background:radial-gradient(80% 80% at 50% 40%, #171008, var(--void2) 75%);
+  min-height:430px;display:flex;flex-direction:column;justify-content:space-between}
+@media(max-width:880px){.hero{border-right:0;border-bottom:1px solid var(--line)}}
+.bezel{position:relative;width:min(300px,86%);margin:6px auto 0;aspect-ratio:1;
+  background:linear-gradient(160deg,#241a12,#0e0a07 60%);
+  border:1px solid #3a2c1f;box-shadow:inset 0 1px 0 #4a3827, inset 0 -2px 0 #080503, 0 24px 60px -20px #000;
+  padding:14px}
+.screen{position:relative;width:100%;height:100%;background:
+  radial-gradient(70% 70% at 50% 45%, #0a1416, #05090a 78%);border:1px solid #0a262b;
+  box-shadow:inset 0 0 40px #020608;overflow:hidden}
+canvas#wheel{display:block;width:100%;height:100%;image-rendering:pixelated}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+.glass{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.09),transparent 26%,transparent 74%,rgba(255,255,255,.03))}
+.bezel-tag{position:absolute;left:18px;bottom:16px;color:var(--bone-dim);font-size:10px;letter-spacing:.2em}
+.bezel-tag b{color:var(--amber)}
+
+.hero-foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;gap:10px}
+.readout{font-family:"Silkscreen";font-size:13px;color:var(--bone-dim);letter-spacing:.06em}
+.readout b{color:var(--bone);font-size:15px}
+.rpm{text-align:right}
+.rpm .n{font-family:"Silkscreen";font-size:30px;color:var(--cyan);display:block;line-height:1}
+.rpm .u{font-size:10px;letter-spacing:.2em;color:var(--bone-dim)}
+
+.ribbon{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(181,72,42,.14),transparent 60%)}
+.ribbon .dot{width:10px;height:10px;flex:none;background:var(--rust);box-shadow:0 0 12px var(--rust)}
+.ribbon.ok .dot{background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.ribbon.idle .dot{background:var(--bone-dim);box-shadow:none}
+#verdict{font-family:"Silkscreen";font-size:clamp(13px,2.1vw,17px);letter-spacing:.03em}
+#verdict i{font-style:normal;color:var(--amber)}
+
+.panel{border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:baseline;gap:10px;padding:11px 22px;border-bottom:1px dashed var(--line);color:var(--bone-dim);font-size:11px;letter-spacing:.2em}
+.hd b{color:var(--bone);font-family:"Silkscreen";font-size:12px;letter-spacing:.06em}
+.hd .sp{margin-left:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr}
+.grid2>*{padding:16px 22px;border-right:1px solid var(--line)}
+.grid2>:nth-child(2n){border-right:0}
+.grid2>.b{border-bottom:1px solid var(--line)}
+.k{font-size:10px;letter-spacing:.18em;color:var(--bone-dim)}
+.v{font-family:"Silkscreen";font-size:clamp(26px,3.6vw,38px);line-height:1;margin-top:6px;color:var(--bone);font-variant-numeric:tabular-nums}
+.v.amber{color:var(--amber)} .v.cyan{color:var(--cyan)} .v.rust{color:var(--rust)}
+
+.bar{height:10px;background:#0b0704;border:1px solid var(--line);position:relative;margin-top:12px}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--amber);box-shadow:0 0 14px var(--amber)}
+.hint{padding:10px 22px;color:var(--bone-dim);font-size:11px}
+.hint b{color:var(--bone)}
+
+.supply{padding:16px 22px}
+.supply .v{font-size:clamp(22px,3vw,30px)}
+.supply .bar i{background:var(--rust);box-shadow:0 0 14px var(--rust)}
+
+.ticker .row{display:grid;grid-template-columns:64px 54px 1fr 72px;gap:8px;align-items:center;
+  padding:8px 22px;border-bottom:1px dotted #221a13;font-size:12px}
+.ticker .row:last-child{border-bottom:0}
+.ticker .lap{font-family:"Silkscreen";color:var(--cyan);font-size:14px}
+.ticker .rp{color:var(--bone-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ticker .ag{color:var(--bone-dim);text-align:right}
+.ticker a{color:var(--bone-dim);border-bottom:1px dotted var(--line)}
+
+.actions{display:flex;gap:10px;padding:16px 22px;flex-wrap:wrap}
+button{font-family:"Silkscreen";font-size:12px;letter-spacing:.06em;cursor:pointer;
+  color:var(--bone);background:#1a1208;border:1px solid #3d2c1b;padding:10px 16px;
+  box-shadow:inset 0 1px 0 #4a3827, 0 3px 0 #080503;transition:.12s}
+button:hover{color:var(--amber);border-color:var(--amber);transform:translateY(-1px);box-shadow:inset 0 1px 0 #6a4a2c,0 4px 0 #080503}
+button:active{transform:translateY(2px);box-shadow:none}
+button.ghost{background:transparent;box-shadow:none;border-style:dashed;color:var(--bone-dim)}
+.addr{color:var(--bone-dim);font-size:11px;padding:0 22px 14px;word-break:break-all}
+.addr b{color:var(--bone)}
+
+.foot{display:flex;gap:18px;flex-wrap:wrap;padding:16px 26px;color:var(--bone-dim);font-size:10px;letter-spacing:.12em;border-top:1px solid var(--line)}
+.foot a{color:var(--bone-dim)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:#1a1208;border:1px solid var(--amber);
+  color:var(--amber);font-family:"Silkscreen";font-size:12px;padding:10px 16px;opacity:0;transition:.2s;z-index:20;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
-<header>
-  <div><span class="brand">THE <b>LAP</b></span> <span class="sub">// squeekchain liveness cockpit · sepia testnet stream-game</span></div>
-  <div class="sub"><span id="led" class="led idle"></span><span id="net">boot…</span></div>
-</header>
 
-<div class="wrap"><div class="grid">
-  <div>
+<div class="mast">
+  <span class="mark"><i></i></span>
+  <h1>THE <em>LAP</em></h1>
+  <div class="kicker"><b>SQUEEKCHAIN · STREAM-GAME</b><span id="state">CONNECTING</span></div>
+</div>
+
+<div class="stage">
+  <section class="hero">
+    <div class="bezel">
+      <div class="screen">
+        <canvas id="wheel" width="320" height="320"></canvas>
+        <div class="scan"></div><div class="glass"></div>
+        <div class="bezel-tag">SQUEETOSHI · <b id="btag">LIVE</b></div>
+      </div>
+    </div>
+    <div class="hero-foot">
+      <div class="readout">WHEEL <b id="spd">0</b> mm/s<br><span style="font-size:10px;letter-spacing:.16em">ORACLE SIG <b id="sig">—</b></span></div>
+      <div class="rpm"><span class="n" id="rpm">0.00</span><span class="u">RPM</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="ribbon idle" id="ribbon"><span class="dot"></span><span id="verdict">reading the chain…</span></div>
+
     <div class="panel">
-      <h2>WHEEL</h2>
-      <canvas id="wheel" width="340" height="260"></canvas>
-      <div class="pt" style="display:flex;justify-content:space-between">
-        <span class="sub">rpm <span id="rpm" style="color:var(--ink)">0.000</span></span>
-        <span class="sub">speed <span id="spd" style="color:var(--ink)">0</span> mm/s</span>
+      <div class="hd"><b>DIVERGENCE</b><span>measured work vs minted blocks</span><span class="sp" id="lagtag">—</span></div>
+      <div class="grid2">
+        <div class="b"><div class="k">UNCLAIMED BLOCKS</div><div class="v amber" id="unclaimed">–</div><div class="bar"><i id="wbar" style="width:0%"></i></div></div>
+        <div class="b"><div class="k">LAST SETTLEMENT</div><div class="v" id="age">–</div><div class="bar" style="visibility:hidden"></div></div>
+        <div><div class="k">QUEUE</div><div class="v" style="font-size:20px" id="queue">–</div></div>
+        <div><div class="k">SETTLED THROUGH</div><div class="v cyan" id="settled">–</div></div>
       </div>
+      <div class="hint">Blocks the oracle measured and nobody minted. <b>A permissionless checkpoint closes the gap</b> — the wheel does not pay on its own.</div>
     </div>
-    <div class="panel" style="margin-top:16px">
-      <h2>VERDICT</h2>
-      <div class="pt" id="verdict" style="font-size:20px">—</div>
-      <div class="note" id="whywrap">Une roue qui tourne mais dont le règlement décroche n'est plus une preuve de travail : c'est un manège.</div>
-    </div>
-  </div>
 
-  <div>
+    <div class="panel supply">
+      <div class="hd"><b>SUPPLY</b><span>SQK · premint</span><span class="sp" id="cap">/ 21,000,000</span></div>
+      <div class="v rust" id="sqk" style="margin-top:10px">–</div>
+      <div class="bar"><i id="cbar" style="width:0%"></i></div>
+      <div class="hint">These SQK came from the deployer premint. Mining mints nothing here yet.</div>
+    </div>
+
     <div class="panel">
-      <h2>LIVENESS <span class="tag" id="freshness">—</span></h2>
-      <div class="metric lag"><span class="k">UNCLAIMED BLOCKS (height − completed)</span><span class="v big" id="unclaimed">–</span></div>
-      <div class="pt"><canvas id="spark" width="600" height="46" style="width:100%;height:46px;display:block;background:#05090a;image-rendering:pixelated"></canvas></div>
-      <div class="pt"><div class="bar"><i id="workbar" style="width:0%"></i></div></div>
-      <div class="note" id="worknote">Travail mesuré par l'oracle mais jamais matérialisé en blocs par un checkpoint permissionless.</div>
+      <div class="hd"><b>RECENT LAPS</b><span>signed settlements</span><span class="sp"><a href="https://dropmoltbot.github.io/squeek-lap/ledger/">open ledger ↗</a></span></div>
+      <div class="ticker" id="ticker"><div class="row"><span class="rp">loading…</span></div></div>
     </div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>LEDGER</h2>
-      <div class="metric"><span class="k">SETTLED THROUGH ROUND</span><span class="v" id="settled">–</span></div>
-      <div class="metric"><span class="k">BLOCK HEIGHT (projected)</span><span class="v" id="height">–</span></div>
-      <div class="metric"><span class="k">COMPLETED BLOCKS (minted)</span><span class="v" id="completed">–</span></div>
-      <div class="metric lag"><span class="k">LAST SETTLEMENT AGE</span><span class="v" id="age">–</span></div>
-      <div class="metric"><span class="k">SETTLEMENT QUEUE</span><span class="v" id="queue">–</span></div>
-    </div>
-
-    <div class="panel" style="margin-top:16px">
-      <h2>SUPPLY (premint, on-chain)</h2>
-      <div class="metric"><span class="k">SQK totalSupply</span><span class="v" id="sqk">–</span></div>
-      <div class="pt"><div class="bar"><i id="capbar" style="width:0%;background:var(--amber);box-shadow:0 0 12px var(--amber)"></i></div></div>
-      <div class="note">Cap stream-game : 21 000 000 SQK. Supply actuel = premint du déployeur, PAS du minage (0 bloc complété).</div>
-    </div>
-
-    <div class="panel" style="margin-top:16px">
-      <h2>CHECKPOINT (permissionless)</h2>
-      <div class="pt note">mining <a id="lmin">0xBb5D…</a> · core <a id="lcore">0x980b…</a><br>
-        attaquant on-chain : <b id="cps">selector non résolu</b> (impl non vérifiée). Tentative = calldata ci-dessous.<br>
-        <span id="cpnote">arg proposé : settledThroughRound courant.</span></div>
-      <div class="pt" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="copycp" style="font-family:inherit;font-size:18px;background:#0a2b30;color:var(--cyan);border:1px solid var(--cyan);padding:8px 14px;cursor:pointer">COPIER CALLDATA</button>
-        <span id="cpout" class="sub" style="align-self:center"></span>
+    <div class="panel">
+      <div class="hd"><b>CHECKPOINT</b><span>permissionless</span><span class="sp" id="cpstate"></span></div>
+      <div class="addr">mining <b>0xBb5D…98f4</b> · core <b>0x980b…c3d44</b><br>selector <b id="cpsel">unresolved</b> · calldata <b id="cpout">—</b></div>
+      <div class="actions">
+        <button id="copycp">COPY CALLDATA</button>
+        <button class="ghost" id="ping">RE-POLL</button>
       </div>
     </div>
+  </section>
+</div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>PROTOCOL</h2>
-      <div class="pt note">
-        core <a id="lcore">0x980b…</a> · token <a id="ltok">0x8102…</a><br>
-        checkpoint permissionless : <b id="cps">inconnu</b> · reporter signe le règlement (permissionné)<br>
-        source : api.squeekchain.com/v1 · contrat : RPC sepolia
-      </div>
-      <div class="pt"><button id="ping" style="font-family:inherit;font-size:18px;background:#0a2b30;color:var(--cyan);border:1px solid var(--cyan);padding:8px 14px;cursor:pointer">PING NOW</button></div>
-    </div>
-  </div>
-</div></div>
-<div class="foot">THE LAP · lecture seule · maj auto 8s · <span id="ts">—</span></div>
+<div class="foot"><span>READ-ONLY</span><span>api.squeekchain.com/v1 · rpc sepolia</span><span>poll 8s</span><span id="ts">—</span><span style="margin-left:auto">dropmoltbot</span></div>
+<div class="toast" id="toast"></div>
 
 <script>
-const API="https://api.squeekchain.com/v1";
-const CORE="0x980b4424c007caf7a1f3670b48c8eaef7ebc3d44";
-const TOK="0x810239D271e80a86023f4F315943Acbd65b59281";
-const RPC="https://ethereum-sepolia-rpc.publicnode.com";
-const CAP=21000000;
+const API="https://api.squeekchain.com/v1", RPC="https://ethereum-sepolia-rpc.publicnode.com";
+const TOK="0x810239D271e80a86023f4F315943Acbd65b59281", CAP=21000000;
 const $=id=>document.getElementById(id);
-let hist=[];
-function sparkDraw(){
-  const c=$("spark"); if(!c)return; const g=c.getContext("2d");
-  g.fillStyle="#05090a"; g.fillRect(0,0,c.width,c.height);
-  const mx=Math.max(1,...hist), bw=c.width/Math.max(hist.length,1);
-  hist.forEach((v,i)=>{const h=(v/mx)*(c.height-4); g.fillStyle="#ffb454"; g.fillRect(i*bw,c.height-h,Math.max(1,bw-1),h);});
+const short=a=>a&&a.length>14?a.slice(0,6)+"…"+a.slice(-4):(a||"—");
+let rpm=0, spokes=0, frame=0, gait=0;
+const BONE="#e8dfcf", AMB="#e8a33d", CY="#3fd0e0", DIM="#3b3026", BG="#05090a";
+const wc=$("wheel"), g=wc.getContext("2d");
+function px(x,y,c,s=4){g.fillStyle=c;g.fillRect(x*s,y*s,s,s);}
+function drawWheel(){
+  g.fillStyle=BG;g.fillRect(0,0,320,320);
+  const S=4, C=40;
+  for(let x=0;x<80;x+=2) px(x,72,DIM);
+  const r=30, moving=rpm>0.05;
+  for(let a=0;a<360;a+=2){
+    const rad=a*Math.PI/180;
+    px(Math.round(C+Math.cos(rad)*r), Math.round(C+Math.sin(rad)*r), moving?CY:DIM);
+    if(a%6===0) px(Math.round(C+Math.cos(rad)*(r-3)),Math.round(C+Math.sin(rad)*(r-3)),"#0d2a2f");
+  }
+  for(let i=0;i<8;i++){
+    const a=(spokes*22.5+i*45)*Math.PI/180;
+    for(let t=6;t<r-3;t+=2) px(Math.round(C+Math.cos(a)*t),Math.round(C+Math.sin(a)*t), i%2?"#12333a":"#0d2a2f");
+  }
+  for(let x=-2;x<=2;x++)for(let y=-2;y<=2;y++) px(C+x,C+y,"#1a3f47");
+  px(C,C,CY);
+  const hx=C-3, hy=64, body=[".###...","#####..",".####.#",".####..","#.#.#..",".#.#..."];
+  for(let y=0;y<body.length;y++)for(let x=0;x<body[y].length;x++) if(body[y][x]==="#") px(hx+x,hy+y,(x===6?AMB:BONE));
+  px(hx+4,hy+1,BG);
+  if(moving){ px(hx+1,hy+6, gait? BONE:DIM); px(hx+4,hy+6, gait? DIM:BONE); }
+  if(rpm>0.4){ px(hx-2,hy+5,DIM); if(frame%2)px(hx-3,hy+3,DIM); }
 }
-let last={s:null,h:null,c:null};
+setInterval(()=>{ if(rpm>0.05){spokes+=1; if(frame++%2===0)gait=1-gait;} drawWheel(); }, rpm>0.05?120:400);
+drawWheel();
 
-function wheel(rot,fresh){
-  const c=$("wheel"),x=c.getContext("2d");
-  x.clearRect(0,0,340,260);
-  // dot grid
-  x.fillStyle="rgba(0,120,140,.12)";
-  for(let gy=8;gy<260;gy+=14)for(let gx=8;gx<340;gx+=14)x.fillRect(gx,gy,1.5,1.5);
-  const cx=170,cy=135,r=92;
-  x.save();x.translate(cx,cy);x.rotate(rot);
-  // rim (pixel)
-  x.strokeStyle= fresh? "#00e5ff":"#ffb454"; x.lineWidth=6;
-  x.beginPath();x.arc(0,0,r,0,7);x.stroke();
-  x.strokeStyle="rgba(0,229,255,.35)";x.lineWidth=2;x.beginPath();x.arc(0,0,r-12,0,7);x.stroke();
-  // spokes
-  for(let i=0;i<12;i++){const a=i*Math.PI/6;x.strokeStyle=i%3?"#12343a":(fresh?"#00e5ff":"#ffb454");
-    x.lineWidth=2;x.beginPath();x.moveTo(Math.cos(a)*10,Math.sin(a)*10);x.lineTo(Math.cos(a)*(r-10),Math.sin(a)*(r-10));x.stroke();}
-  // hamster bloc
-  x.fillStyle=fresh?"#00e5ff":"#ffb454";x.fillRect(-8,-8,16,16);
-  x.fillStyle="#05090a";x.fillRect(-3,-3,6,6);
-  x.restore();
-  // hub
-  x.fillStyle="#08181b";x.beginPath();x.arc(cx,cy,12,0,7);x.fill();
-}
-
-// rough "hamster" drawn only when live rotation applied separately
-
-let rot=0;
-setInterval(()=>{const fresh=$("led").classList.contains("on");
-  if(window.__rpm>0.05){rot+=(window.__rpm||0)*0.9;} wheel(rot,fresh);},90);
-
-function setLed(cls,txt){const l=$("led");l.className="led "+cls;$("net").textContent=txt;}
-
-async function rpc(method,params){
-  const r=await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});
-  return (await r.json()).result;
-}
-async function supply(){
-  try{
-    const r=await rpc("eth_call",[{to:TOK,data:"0x18160ddd"},"latest"]);
-    const v=Number(BigInt(r))/1e18;
-    $("sqk").textContent=v.toLocaleString(undefined,{maximumFractionDigits:0});
-    $("capbar").style.width=Math.min(100,v/CAP*100)+"%";
-    return v;
-  }catch(e){$("sqk").textContent="rpc?";return null;}
-}
-const REWARD=6900; // SQK par bloc complété (launch design)
-function ago(iso){
-  if(!iso)return "—";
-  const s=(Date.now()-new Date(iso).getTime())/1000;
-  if(s<60)return Math.round(s)+"s"; if(s<3600)return Math.round(s/60)+"min";
-  return (s/3600).toFixed(1)+"h";
-}
+async function rpc(m,p){const r=await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:m,params:p})});return (await r.json()).result;}
+function ago(iso){if(!iso)return "—";const s=(Date.now()-new Date(iso))/1000;
+  if(s<60)return Math.round(s)+"s";if(s<3600)return Math.round(s/60)+"m";if(s<86400)return (s/3600).toFixed(1)+"h";return (s/86400).toFixed(1)+"d";}
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),1500);}
 
 async function poll(){
   try{
-    const [st,core]=await Promise.all([fetch(API+"/status").then(r=>r.json()),
-                                       fetch(API+"/core").then(r=>r.json())]);
-    const m=st.measurement||{}, b=st.builder?.anchor||core.core||{}, q=st.settlementQueue||{};
-    const fresh = m.freshness==="online" && (m.coreStatus!=="IDLE" || m.rpmMilli>0);
-    window.__rpm=(m.rpmMilli||0)/1000;
-    $("rpm").textContent=window.__rpm.toFixed(3);
-    $("spd").textContent=m.speedMmPerSecond||0;
-    $("freshness").textContent=(m.freshness||"?")+" · "+(m.coreStatus||"?");
-    const settled=Number(b.settledThroughRound||0), height=Number(b.blockHeight||0);
-    supply();
-    const completed=Number(q.projected?.completedBlockCount||0);
-    const unclaimed=Math.max(0,height-completed);
-    hist.push(unclaimed); if(hist.length>90)hist.shift(); sparkDraw();
-    $("cpout").textContent="0xd04cdba7"+settled.toString(16).padStart(64,"0");
-    $("settled").textContent=settled; $("height").textContent=height;
-    $("completed").textContent=completed;
-    $("unclaimed").textContent=unclaimed;
-    $("workbar").style.width=(height? Math.min(100,unclaimed/height*100):0)+"%";
-    $("unclaimed").parentElement.className="metric "+(unclaimed>0?"lag":"ok");
-    const conf=b.confirmedAt||b.transactionHash&&null;
+    const [st,core]=await Promise.all([fetch(API+"/status").then(r=>r.json()),fetch(API+"/core").then(r=>r.json())]);
+    const m=st.measurement||{}, b=st.builder?.anchor||{}, q=st.settlementQueue||{};
+    rpm=(m.rpmMilli||0)/1000; $("rpm").textContent=rpm.toFixed(2); $("spd").textContent=m.speedMmPerSecond||0;
+    $("sig").textContent=(m.provenance==="hardware")?"HW":"—";
+    const settled=Number(b.settledThroughRound||core.core?.settledThroughRound||0), height=Number(b.blockHeight||0);
+    const completed=Number(q.projected?.completedBlockCount||0), unclaimed=Math.max(0,height-completed);
+    $("settled").textContent=settled; $("unclaimed").textContent=unclaimed;
+    $("wbar").style.width=(height?Math.min(100,unclaimed/height*100):0)+"%";
     $("age").textContent=ago(q.latestSubmission?.confirmedAt||st.generatedAt);
-    $("queue").textContent=(q.state||"?")+" ("+(q.settlementEnabled?"on":"off")+")";
-
-    if(m.freshness==="online"&&unclaimed>0&&fresh) setLed("warn","LIVE · WORK UNCLAIMED");
-    else if(m.freshness==="online") setLed("on","LIVE · SETTLED");
-    else setLed("off","STALE");
-    $("verdict").innerHTML = unclaimed>0
-      ? `<span style="color:var(--amber)">TRAVAIL LIBRE : ${unclaimed} blocs mesurés, non minés.</span> Un checkpoint permissionless manque.`
-      : `<span style="color:var(--cyan)">Settled à jour.</span> La roue et le ledger sont d'accord.`;
-    setInterval; $("ts").textContent=new Date().toLocaleTimeString();
-    supply();
-  }catch(e){ setLed("off","API DOWN"); $("verdict").textContent="API injoignable : "+e.message; }
+    $("queue").textContent=(q.state||"—")+(q.settlementEnabled?"":" · off");
+    $("lagtag").textContent=unclaimed>0?unclaimed+" OPEN":"";
+    const live=m.freshness==="online"&&rpm>0.05, idle=m.freshness==="online";
+    $("state").textContent=live?"RUNNING":idle?"IDLE":"STALE";
+    $("state").style.color=live?"var(--cyan)":idle?"var(--bone-dim)":"var(--rust)";
+    $("btag").textContent=live?"RUNNING":idle?"IDLE":"STALE";
+    $("ribbon").className="ribbon "+(live?"ok":idle?"idle":"");
+    $("verdict").innerHTML= unclaimed>0
+      ? `HAMSTER MEASURED <i>${unclaimed}</i> BLOCKS THE CHAIN HAS NOT PAID.`
+      : `CHAIN SETTLED. NO OPEN WORK.`;
+    $("cpout").textContent="0xd04cdba7"+settled.toString(16).padStart(64,"0");
+    try{const s=await rpc("eth_call",[{to:TOK,data:"0x18160ddd"},"latest"]);const v=Number(BigInt(s))/1e18;
+      $("sqk").textContent=v.toLocaleString(undefined,{maximumFractionDigits:0}); $("cbar").style.width=Math.min(100,v/CAP*100)+"%";}catch(e){}
+    const evs=(core.events||[]).filter(e=>e.eventName==="BatchSettled").slice(-6).reverse();
+    $("ticker").innerHTML=evs.length?evs.map(e=>{
+      const a=Object.fromEntries((e.arguments||[]).map(x=>[x.name,x.value]));
+      return `<div class="row"><span class="lap">#${a.settledThroughRound||"?"}</span><span class="rp">${short(a.reporter)}</span>
+      <span class="rp"><a href="https://eth-sepolia.blockscout.com/tx/${e.transactionHash}" target="_blank" rel="noopener">${short(e.transactionHash)}</a></span>
+      <span class="ag">${ago(new Date(Number(e.blockTimestamp)*1000).toISOString())}</span></div>`;
+    }).join(""):`<div class="row"><span class="rp">no laps in feed</span></div>`;
+    $("ts").textContent=new Date().toLocaleTimeString();
+  }catch(err){
+    $("state").textContent="STALE"; $("state").style.color="var(--rust)";
+    $("verdict").textContent="API unreachable: "+err.message.slice(0,44);
+    $("ribbon").className="ribbon";
+  }
 }
 $("ping").onclick=poll;
-$("copycp").onclick=()=>{const t=$("cpout").textContent; if(navigator.clipboard)navigator.clipboard.writeText(t);
-  $("copycp").textContent="COPIÉ"; setTimeout(()=>$("copycp").textContent="COPIER CALLDATA",1200);};
-$("lmin").textContent="0xBb5D…98f4"; $("lcore").textContent="0x980b…c3d44";
+$("copycp").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("cpout").textContent);toast("calldata copied");};
 poll(); setInterval(poll,8000);
 </script>
 </body>
