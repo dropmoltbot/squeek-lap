@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LAP LEDGER — squeekchain settlement registry</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#0a0d0e; --ink:#d7ecef; --dim:#6d8a90; --cyan:#00e5ff; --amber:#ffb454;
+  --line:#12343a; --hot:#ff4d4d; --chip:#0b1618;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:
+    repeating-linear-gradient(90deg,rgba(0,120,140,.10) 0 1px,transparent 1px 24px),
+    repeating-linear-gradient(0deg,rgba(0,120,140,.10) 0 1px,transparent 1px 24px),
+    radial-gradient(110% 80% at 50% -10%,#0c1e24,#080b0c 60%);
+  color:var(--ink); font-family:"IBM Plex Mono",monospace; font-size:14px;
+  min-height:100vh;
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.20) 3px 4px),
+  radial-gradient(130% 120% at 50% 50%,transparent 62%,rgba(0,0,0,.5) 100%);}
+header{padding:18px 22px;border-bottom:2px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px}
+.brand{font-family:"VT323";font-size:40px;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+.brand b{color:var(--amber)}
+.sub{color:var(--dim);font-size:12px;letter-spacing:1px}
+.wrap{max-width:1120px;margin:0 auto;padding:18px 16px 70px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{border:1px solid var(--line);background:var(--chip);padding:10px 12px}
+.stat .k{color:var(--dim);font-size:11px;letter-spacing:1px}
+.stat .v{font-family:"VT323";font-size:34px;color:var(--ink);line-height:1}
+.stat.amber .v{color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;color:var(--dim);font-weight:400;font-size:11px;letter-spacing:1px;padding:8px 8px;border-bottom:1px solid var(--line)}
+tbody td{padding:9px 8px;border-bottom:1px dotted #0f2a2f;vertical-align:top}
+tr:hover td{background:rgba(0,229,255,.05)}
+.lap{font-family:"VT323";font-size:26px;color:var(--cyan)}
+.mono{word-break:break-all}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
+.pill{border:1px solid var(--line);color:var(--amber);padding:1px 7px;font-size:11px}
+.wheel{display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:6px;
+  border:2px solid var(--amber);border-radius:50%;position:relative}
+.wheel::before{content:"";position:absolute;inset:2px;border-top:2px solid var(--amber);border-bottom:2px solid var(--amber);border-radius:50%}
+.empty{padding:30px;color:var(--dim);text-align:center}
+.foot{color:var(--dim);font-size:11px;padding:10px 22px;border-top:1px solid var(--line)}
+.led{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.led.on{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}.led.off{background:var(--hot)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#08262b;border:1px solid var(--cyan);color:var(--cyan);padding:8px 14px;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div><span class="brand">LAP <b>LEDGER</b></span> <span class="sub">// registre des tours réglés · squeekchain stream-game sepolia · lecture seule</span></div>
+  <div class="sub"><span id="led" class="led on"></span><span id="status">sync…</span></div>
+</header>
+<div class="wrap">
+  <div class="stats">
+    <div class="stat"><div class="k">SETTLED THROUGH</div><div class="v" id="head">–</div></div>
+    <div class="stat amber"><div class="k">WORK UNCLAIMED</div><div class="v" id="uncl">–</div></div>
+    <div class="stat"><div class="k">LAPS IN FEED</div><div class="v" id="cnt">–</div></div>
+    <div class="stat"><div class="k">LAST LAP AGE</div><div class="v" id="age">–</div></div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th style="width:90px">LAP</th><th style="width:70px">WORK</th><th>REPORTER</th>
+      <th>DIGEST</th><th style="width:150px">TX</th><th style="width:70px">AGE</th>
+    </tr></thead>
+    <tbody id="rows"><tr><td colspan="6" class="empty">chargement du registre…</td></tr></tbody>
+  </table>
+  <div class="foot">Chaque ligne = un <b>BatchSettled</b> signé par le reporter (EIP-712), réglant les rounds jusqu'à <i>LAP</i>. Le travail n'est compté que s'il est réclamé ensuite par un checkpoint permissionless. Source : api.squeekchain.com/v1/core (events) + RPC sepolia (blockInfo). MAJ 12s.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API="https://api.squeekchain.com/v1";
+const RPC="https://ethereum-sepolia-rpc.publicnode.com";
+const CORE="0x980b4424c007caf7a1f3670b48c8eaef7ebc3d44";
+const $=id=>document.getElementById(id);
+const short=a=>a&&a.length>12?a.slice(0,6)+"…"+a.slice(-4):a;
+
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),1400);}
+function ago(ts){const s=(Date.now()/1000)-Number(ts);
+  if(s<60)return Math.round(s)+"s"; if(s<3600)return Math.round(s/60)+"m";
+  if(s<86400)return (s/3600).toFixed(1)+"h"; return (s/86400).toFixed(1)+"d";}
+
+async function rpc(m,p){const r=await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({jsonrpc:"2.0",id:1,method:m,params:p})});return (await r.json()).result;}
+async function workOf(round){
+  try{const r=await rpc("eth_call",[{to:CORE,data:"0x9bc84ea0"+(Number(round)).toString(16).padStart(64,"0")},"latest"]);
+    if(!r||r==="0x")return null; const w=r.slice(2,66); return Number(BigInt("0x"+w));}catch(e){return null;}
+}
+
+async function load(){
+  try{
+    const core=await fetch(API+"/core").then(r=>r.json());
+    const st=await fetch(API+"/status").then(r=>r.json());
+    const settled=Number(core.core?.settledThroughRound||0);
+    const height=Number(st.builder?.anchor?.blockHeight||st.settlementQueue?.projected?.blockHeight||0);
+    $("head").textContent=settled;
+    $("uncl").textContent=Math.max(0,height-Number(st.settlementQueue?.projected?.completedBlockCount||0));
+    const evs=(core.events||[]).filter(e=>e.eventName==="BatchSettled").reverse();
+    $("cnt").textContent=evs.length;
+    if(!evs.length){$("rows").innerHTML='<tr><td colspan="6" class="empty">aucun lap dans le flux.</td></tr>';}
+    else{
+      const rows=[];
+      for(const e of evs){
+        const args=Object.fromEntries((e.arguments||[]).map(a=>[a.name,a.value]));
+        const round=Number(args.settledThroughRound||0);
+        const w=await workOf(round);
+        const tx=e.transactionHash;
+        rows.push(`<tr>
+          <td class="lap">#${round}</td>
+          <td>${w==null?"—":w}</td>
+          <td class="mono">${short(args.reporter||"?")} <span class="pill">signed</span></td>
+          <td class="mono">${short(args.digest||"?")}</td>
+          <td class="mono"><a href="https://eth-sepolia.blockscout.com/tx/${tx}" target="_blank" rel="noopener">${short(tx)}</a></td>
+          <td>${ago(e.blockTimestamp)}</td></tr>`);
+      }
+      $("rows").innerHTML=rows.join("");
+      $("age").textContent=evs.length?ago(evs[evs.length-1].blockTimestamp):"—";
+    }
+    $("status").textContent="live · core "+CORE.slice(0,8)+"…";
+    $("led").className="led on";
+  }catch(err){
+    $("status").textContent="API down : "+err.message.slice(0,40);
+    $("led").className="led off";
+  }
+}
+load(); setInterval(load,12000);
+</script>
+</body>
+</html>

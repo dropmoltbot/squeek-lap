@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>THE LAP — squeekchain liveness cockpit</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b0c; --ink:#cdeef2; --dim:#5d7f86; --cyan:#00e5ff; --amber:#ffb454;
+  --hot:#ff4d4d; --grid:rgba(0,120,140,.16); --panel:#0c1416; --line:#12343a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(120% 90% at 50% -10%, #0b1c22 0, var(--bg) 55%),
+    repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.28) 3px 4px),
+    repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 26px),
+    repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 26px);
+  color:var(--ink); font-family:"VT323",monospace; font-size:20px;
+  letter-spacing:.5px; overflow-x:hidden;
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(130% 120% at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%);}
+header{display:flex;justify-content:space-between;align-items:baseline;
+  padding:16px 22px;border-bottom:2px solid var(--line);flex-wrap:wrap;gap:8px}
+.brand{font-size:34px;color:var(--cyan);text-shadow:0 0 8px var(--cyan),0 2px 0 #042}
+.brand b{color:var(--amber)}
+.sub{color:var(--dim);font-size:16px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:18px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:linear-gradient(180deg,var(--panel),#070e10);border:1px solid var(--line);
+  box-shadow:inset 0 0 0 1px #04181c, 0 0 0 1px #03080a;position:relative}
+.panel h2{margin:0;padding:8px 12px;font-size:19px;color:var(--dim);letter-spacing:2px;
+  border-bottom:1px dashed var(--line);font-weight:400}
+.pt{padding:12px 14px}
+#wheel{display:block;width:100%;image-rendering:pixelated;background:#05090a}
+.metric{display:flex;justify-content:space-between;align-items:baseline;padding:9px 14px;
+  border-bottom:1px dotted #0f2a2f}
+.metric .k{color:var(--dim);font-size:16px;letter-spacing:1px}
+.metric .v{font-size:30px;color:var(--ink)}
+.big{font-size:64px;line-height:.9}
+.lag .v{color:var(--amber)}
+.crit .v{color:var(--hot)}
+.ok .v{color:var(--cyan)}
+.led{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:8px}
+.led.on{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.led.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.led.off{background:var(--hot);box-shadow:0 0 10px var(--hot)}
+.led.idle{background:#333;box-shadow:none}
+.bar{height:14px;background:#06181b;border:1px solid var(--line);position:relative;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.note{color:var(--dim);font-size:15px;line-height:1.35;padding:10px 14px}
+.tag{display:inline-block;border:1px solid var(--line);padding:2px 8px;color:var(--amber);font-size:14px}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan)}
+.foot{padding:10px 22px;color:var(--dim);font-size:14px;border-top:1px solid var(--line)}
+.blink{animation:bl 1.1s steps(1) infinite}@keyframes bl{50%{opacity:.25}}
+</style>
+</head>
+<body>
+<header>
+  <div><span class="brand">THE <b>LAP</b></span> <span class="sub">// squeekchain liveness cockpit · sepia testnet stream-game</span></div>
+  <div class="sub"><span id="led" class="led idle"></span><span id="net">boot…</span></div>
+</header>
+
+<div class="wrap"><div class="grid">
+  <div>
+    <div class="panel">
+      <h2>WHEEL</h2>
+      <canvas id="wheel" width="340" height="260"></canvas>
+      <div class="pt" style="display:flex;justify-content:space-between">
+        <span class="sub">rpm <span id="rpm" style="color:var(--ink)">0.000</span></span>
+        <span class="sub">speed <span id="spd" style="color:var(--ink)">0</span> mm/s</span>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h2>VERDICT</h2>
+      <div class="pt" id="verdict" style="font-size:20px">—</div>
+      <div class="note" id="whywrap">Une roue qui tourne mais dont le règlement décroche n'est plus une preuve de travail : c'est un manège.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>LIVENESS <span class="tag" id="freshness">—</span></h2>
+      <div class="metric lag"><span class="k">UNCLAIMED BLOCKS (height − completed)</span><span class="v big" id="unclaimed">–</span></div>
+      <div class="pt"><canvas id="spark" width="600" height="46" style="width:100%;height:46px;display:block;background:#05090a;image-rendering:pixelated"></canvas></div>
+      <div class="pt"><div class="bar"><i id="workbar" style="width:0%"></i></div></div>
+      <div class="note" id="worknote">Travail mesuré par l'oracle mais jamais matérialisé en blocs par un checkpoint permissionless.</div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>LEDGER</h2>
+      <div class="metric"><span class="k">SETTLED THROUGH ROUND</span><span class="v" id="settled">–</span></div>
+      <div class="metric"><span class="k">BLOCK HEIGHT (projected)</span><span class="v" id="height">–</span></div>
+      <div class="metric"><span class="k">COMPLETED BLOCKS (minted)</span><span class="v" id="completed">–</span></div>
+      <div class="metric lag"><span class="k">LAST SETTLEMENT AGE</span><span class="v" id="age">–</span></div>
+      <div class="metric"><span class="k">SETTLEMENT QUEUE</span><span class="v" id="queue">–</span></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>SUPPLY (premint, on-chain)</h2>
+      <div class="metric"><span class="k">SQK totalSupply</span><span class="v" id="sqk">–</span></div>
+      <div class="pt"><div class="bar"><i id="capbar" style="width:0%;background:var(--amber);box-shadow:0 0 12px var(--amber)"></i></div></div>
+      <div class="note">Cap stream-game : 21 000 000 SQK. Supply actuel = premint du déployeur, PAS du minage (0 bloc complété).</div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>CHECKPOINT (permissionless)</h2>
+      <div class="pt note">mining <a id="lmin">0xBb5D…</a> · core <a id="lcore">0x980b…</a><br>
+        attaquant on-chain : <b id="cps">selector non résolu</b> (impl non vérifiée). Tentative = calldata ci-dessous.<br>
+        <span id="cpnote">arg proposé : settledThroughRound courant.</span></div>
+      <div class="pt" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="copycp" style="font-family:inherit;font-size:18px;background:#0a2b30;color:var(--cyan);border:1px solid var(--cyan);padding:8px 14px;cursor:pointer">COPIER CALLDATA</button>
+        <span id="cpout" class="sub" style="align-self:center"></span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>PROTOCOL</h2>
+      <div class="pt note">
+        core <a id="lcore">0x980b…</a> · token <a id="ltok">0x8102…</a><br>
+        checkpoint permissionless : <b id="cps">inconnu</b> · reporter signe le règlement (permissionné)<br>
+        source : api.squeekchain.com/v1 · contrat : RPC sepolia
+      </div>
+      <div class="pt"><button id="ping" style="font-family:inherit;font-size:18px;background:#0a2b30;color:var(--cyan);border:1px solid var(--cyan);padding:8px 14px;cursor:pointer">PING NOW</button></div>
+    </div>
+  </div>
+</div></div>
+<div class="foot">THE LAP · lecture seule · maj auto 8s · <span id="ts">—</span></div>
+
+<script>
+const API="https://api.squeekchain.com/v1";
+const CORE="0x980b4424c007caf7a1f3670b48c8eaef7ebc3d44";
+const TOK="0x810239D271e80a86023f4F315943Acbd65b59281";
+const RPC="https://ethereum-sepolia-rpc.publicnode.com";
+const CAP=21000000;
+const $=id=>document.getElementById(id);
+let hist=[];
+function sparkDraw(){
+  const c=$("spark"); if(!c)return; const g=c.getContext("2d");
+  g.fillStyle="#05090a"; g.fillRect(0,0,c.width,c.height);
+  const mx=Math.max(1,...hist), bw=c.width/Math.max(hist.length,1);
+  hist.forEach((v,i)=>{const h=(v/mx)*(c.height-4); g.fillStyle="#ffb454"; g.fillRect(i*bw,c.height-h,Math.max(1,bw-1),h);});
+}
+let last={s:null,h:null,c:null};
+
+function wheel(rot,fresh){
+  const c=$("wheel"),x=c.getContext("2d");
+  x.clearRect(0,0,340,260);
+  // dot grid
+  x.fillStyle="rgba(0,120,140,.12)";
+  for(let gy=8;gy<260;gy+=14)for(let gx=8;gx<340;gx+=14)x.fillRect(gx,gy,1.5,1.5);
+  const cx=170,cy=135,r=92;
+  x.save();x.translate(cx,cy);x.rotate(rot);
+  // rim (pixel)
+  x.strokeStyle= fresh? "#00e5ff":"#ffb454"; x.lineWidth=6;
+  x.beginPath();x.arc(0,0,r,0,7);x.stroke();
+  x.strokeStyle="rgba(0,229,255,.35)";x.lineWidth=2;x.beginPath();x.arc(0,0,r-12,0,7);x.stroke();
+  // spokes
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;x.strokeStyle=i%3?"#12343a":(fresh?"#00e5ff":"#ffb454");
+    x.lineWidth=2;x.beginPath();x.moveTo(Math.cos(a)*10,Math.sin(a)*10);x.lineTo(Math.cos(a)*(r-10),Math.sin(a)*(r-10));x.stroke();}
+  // hamster bloc
+  x.fillStyle=fresh?"#00e5ff":"#ffb454";x.fillRect(-8,-8,16,16);
+  x.fillStyle="#05090a";x.fillRect(-3,-3,6,6);
+  x.restore();
+  // hub
+  x.fillStyle="#08181b";x.beginPath();x.arc(cx,cy,12,0,7);x.fill();
+}
+
+// rough "hamster" drawn only when live rotation applied separately
+
+let rot=0;
+setInterval(()=>{const fresh=$("led").classList.contains("on");
+  if(window.__rpm>0.05){rot+=(window.__rpm||0)*0.9;} wheel(rot,fresh);},90);
+
+function setLed(cls,txt){const l=$("led");l.className="led "+cls;$("net").textContent=txt;}
+
+async function rpc(method,params){
+  const r=await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});
+  return (await r.json()).result;
+}
+async function supply(){
+  try{
+    const r=await rpc("eth_call",[{to:TOK,data:"0x18160ddd"},"latest"]);
+    const v=Number(BigInt(r))/1e18;
+    $("sqk").textContent=v.toLocaleString(undefined,{maximumFractionDigits:0});
+    $("capbar").style.width=Math.min(100,v/CAP*100)+"%";
+    return v;
+  }catch(e){$("sqk").textContent="rpc?";return null;}
+}
+const REWARD=6900; // SQK par bloc complété (launch design)
+function ago(iso){
+  if(!iso)return "—";
+  const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<60)return Math.round(s)+"s"; if(s<3600)return Math.round(s/60)+"min";
+  return (s/3600).toFixed(1)+"h";
+}
+
+async function poll(){
+  try{
+    const [st,core]=await Promise.all([fetch(API+"/status").then(r=>r.json()),
+                                       fetch(API+"/core").then(r=>r.json())]);
+    const m=st.measurement||{}, b=st.builder?.anchor||core.core||{}, q=st.settlementQueue||{};
+    const fresh = m.freshness==="online" && (m.coreStatus!=="IDLE" || m.rpmMilli>0);
+    window.__rpm=(m.rpmMilli||0)/1000;
+    $("rpm").textContent=window.__rpm.toFixed(3);
+    $("spd").textContent=m.speedMmPerSecond||0;
+    $("freshness").textContent=(m.freshness||"?")+" · "+(m.coreStatus||"?");
+    const settled=Number(b.settledThroughRound||0), height=Number(b.blockHeight||0);
+    supply();
+    const completed=Number(q.projected?.completedBlockCount||0);
+    const unclaimed=Math.max(0,height-completed);
+    hist.push(unclaimed); if(hist.length>90)hist.shift(); sparkDraw();
+    $("cpout").textContent="0xd04cdba7"+settled.toString(16).padStart(64,"0");
+    $("settled").textContent=settled; $("height").textContent=height;
+    $("completed").textContent=completed;
+    $("unclaimed").textContent=unclaimed;
+    $("workbar").style.width=(height? Math.min(100,unclaimed/height*100):0)+"%";
+    $("unclaimed").parentElement.className="metric "+(unclaimed>0?"lag":"ok");
+    const conf=b.confirmedAt||b.transactionHash&&null;
+    $("age").textContent=ago(q.latestSubmission?.confirmedAt||st.generatedAt);
+    $("queue").textContent=(q.state||"?")+" ("+(q.settlementEnabled?"on":"off")+")";
+
+    if(m.freshness==="online"&&unclaimed>0&&fresh) setLed("warn","LIVE · WORK UNCLAIMED");
+    else if(m.freshness==="online") setLed("on","LIVE · SETTLED");
+    else setLed("off","STALE");
+    $("verdict").innerHTML = unclaimed>0
+      ? `<span style="color:var(--amber)">TRAVAIL LIBRE : ${unclaimed} blocs mesurés, non minés.</span> Un checkpoint permissionless manque.`
+      : `<span style="color:var(--cyan)">Settled à jour.</span> La roue et le ledger sont d'accord.`;
+    setInterval; $("ts").textContent=new Date().toLocaleTimeString();
+    supply();
+  }catch(e){ setLed("off","API DOWN"); $("verdict").textContent="API injoignable : "+e.message; }
+}
+$("ping").onclick=poll;
+$("copycp").onclick=()=>{const t=$("cpout").textContent; if(navigator.clipboard)navigator.clipboard.writeText(t);
+  $("copycp").textContent="COPIÉ"; setTimeout(()=>$("copycp").textContent="COPIER CALLDATA",1200);};
+$("lmin").textContent="0xBb5D…98f4"; $("lcore").textContent="0x980b…c3d44";
+poll(); setInterval(poll,8000);
+</script>
+</body>
+</html>
